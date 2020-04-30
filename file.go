@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path"
+	"sync"
 	"time"
 )
 
@@ -24,6 +25,7 @@ type File struct {
 	fs       *FileSystem
 	buf      *bytes.Reader
 	dirIndex int
+	sync.Mutex
 }
 
 // Implementation of os.FileInfo
@@ -55,6 +57,9 @@ func (f *File) Sys() interface{} {
 // Implementation of http.File
 
 func (f *File) Close() error {
+	f.Lock()
+	defer f.Unlock()
+
 	f.buf = nil
 	f.dirIndex = 0
 
@@ -77,6 +82,9 @@ func (f *File) Readdir(count int) ([]os.FileInfo, error) {
 }
 
 func (f *File) Read(data []byte) (int, error) {
+	f.Lock()
+	defer f.Unlock()
+
 	if f.buf == nil {
 		f.buf = bytes.NewReader(f.Data)
 	}
@@ -85,6 +93,9 @@ func (f *File) Read(data []byte) (int, error) {
 }
 
 func (f *File) Seek(offset int64, whence int) (int64, error) {
+	f.Lock()
+	defer f.Unlock()
+
 	if f.buf == nil {
 		f.buf = bytes.NewReader(f.Data)
 	}
